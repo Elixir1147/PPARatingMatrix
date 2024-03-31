@@ -1,0 +1,34 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PpaRating {
+  id             String   @id @default(uuid())
+  name           String
+  importance     Int      @default(5)
+  easy           Int      @default(5)
+  transparency   Int      @default(5)
+  control        Int      @default(5)
+  responsibility Int      @default(5)
+  time           Int      @default(5)
+  success_rate   Int      @default(5)
+  identity       Int      @default(5)
+  progress       Int      @default(5)
+  satisfaction   Int      @default(5)
+  preoccupancy   Int      @default(5)
+  support        Int      @default(5)
+  autonomy       Int      @default(5)
+  create_data    DateTime @default(now())
+  update_date    DateTime @default(now()) @updatedAt
+}
