@@ -1,3 +1,12 @@
+/*
+  Warnings:
+
+  - You are about to drop the `Ppa_rating` table. If the table is not empty, all the data it contains will be lost.
+
+*/
+-- DropTable
+DROP TABLE "Ppa_rating";
+
 -- CreateTable
 CREATE TABLE "PpaRating" (
     "id" TEXT NOT NULL,
