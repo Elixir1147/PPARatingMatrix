@@ -1,95 +1,208 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+import PpaRatingCard from "./_components/PpaRatingCard";
+import { PpaRatingElement } from "./lib/type";
+import { KEY_SEPARATER, NEXT_BASE_URL } from "./lib/macro";
+import AddProjectButton from "./_components/AddProjectButton";
+import { useEffect, useState, useRef, ChangeEvent, MouseEvent } from "react";
 
 export default function Home() {
+  const [elementList, setElementList] = useState<PpaRatingElement[] | null>(
+    null
+  );
+  const inputDoms = useRef<null | HTMLInputElement>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      const res: { ppaRating: PpaRatingElement[] } | string = await fetch(
+        NEXT_BASE_URL + "/api/ppa-rating/",
+        {
+          method: "GET",
+          cache: "no-cache",
+        }
+      )
+        .then((res) => {
+          switch (res.status) {
+            case 200: {
+              return res.json();
+            }
+            case 500: {
+              return res.text();
+            }
+            default: {
+              throw new Error();
+            }
+          }
+        })
+        .catch((err) => "エラーが発生しました．");
+      if (!ignore) {
+        if (typeof res === "string") {
+          alert(res);
+        } else {
+          setElementList(res.ppaRating);
+        }
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  async function handleClick() {
+    if (inputDoms.current) {
+      const projectName = inputDoms.current.value;
+      const addedElement: PpaRatingElement | string = await fetch(
+        NEXT_BASE_URL + "/api/ppa-rating",
+        {
+          method: "POST",
+          body: projectName,
+        }
+      )
+        .then((res) => {
+          switch (res.status) {
+            case 200: {
+              return res.json();
+            }
+            case 500: {
+              return "プロジェクトの追加に失敗しました．";
+            }
+            default: {
+              throw new Error();
+            }
+          }
+        })
+        .catch((err) => {
+          return "プロジェクトの追加に失敗しました．";
+        });
+      if (typeof addedElement !== "string") {
+        if (elementList !== null) {
+          setElementList([...elementList, addedElement]);
+        }
+      } else {
+        alert(addedElement);
+      }
+    }
+  }
+  async function handleChange(e: ChangeEvent<HTMLInputElement>) {
+    if (elementList) {
+      const [id, changedValueName] = e.target.id.split(KEY_SEPARATER);
+      const newValue = parseInt(e.target.value);
+      const [element] = elementList.filter((el) => el.id.toString() === id);
+      const res: string | PpaRatingElement = await fetch(
+        NEXT_BASE_URL + "/api/ppa-rating/" + id,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            ...element,
+            [changedValueName]: newValue,
+          }),
+        }
+      )
+        .then((res) => {
+          switch (res.status) {
+            case 200: {
+              return res.json();
+            }
+            case 500: {
+              return "プロジェクトの更新に失敗しました．";
+            }
+            default: {
+              throw new Error();
+            }
+          }
+        })
+        .catch((err: Error) => {
+          return `更新時にエラーが発生しました．${err.message}`;
+        });
+      if (typeof res === "string") {
+        alert(res);
+      } else {
+        const newElementList = elementList.filter((el) => el.id !== res.id);
+        console.debug(res);
+        setElementList([res, ...newElementList]);
+      }
+    }
+  }
+
+  async function deleteRow(e: MouseEvent<HTMLButtonElement>) {
+    if (elementList) {
+      const [id] = (e.target as HTMLButtonElement).id.split(KEY_SEPARATER);
+      const res: PpaRatingElement | string = await fetch(
+        NEXT_BASE_URL + "/api/ppa-rating/" + id,
+        {
+          method: "DELETE",
+        }
+      )
+        .then((res) => {
+          switch (res.status) {
+            case 200: {
+              return res.json();
+            }
+            case 500: {
+              return "プロジェクトの削除に失敗しました．";
+            }
+            default: {
+              throw new Error();
+            }
+          }
+        })
+        .catch((err: Error) => {
+          return `削除時にエラーが発生しました．${err.message}`;
+        });
+      if (typeof res === "string") {
+        alert(res);
+      } else {
+        const newElementList = elementList?.filter((el) => el.id !== res.id);
+        setElementList(newElementList);
+      }
+    }
+  }
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
+    <main>
+      <AddProjectButton ref={inputDoms} handleClick={handleClick} />
+      {elementList === null ? (
+        "Loading"
+      ) : (
+        <table
+          style={{
+            tableLayout: "auto",
+            borderSpacing: "1rem 1rem",
+          }}
         >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+          <caption>PPA Rating Matrix</caption>
+          <thead>
+            <th scope="col">プロジェクト名</th>
+            <th scope="col">重要性</th>
+            <th scope="col">簡単さ</th>
+            <th scope="col">透明性</th>
+            <th scope="col">管理性</th>
+            <th scope="col">責任</th>
+            <th scope="col">時間適正</th>
+            <th scope="col">成功率</th>
+            <th scope="col">自己同一性</th>
+            <th scope="col">他者からの重要性</th>
+            <th scope="col">進捗状況</th>
+            <th scope="col">やりがい度</th>
+            <th scope="col">没頭度</th>
+            <th scope="col">支持レベル</th>
+            <th scope="col">自立性</th>
+            <th scope="col">合計値</th>
+          </thead>
+          <tbody>
+            {elementList.map((e) => {
+              return (
+                <PpaRatingCard
+                  key={e.id}
+                  elements={{ ...e }}
+                  handleChange={handleChange}
+                  deleteRow={deleteRow}
+                />
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </main>
   );
 }
